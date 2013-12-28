@@ -338,13 +338,6 @@ module Punchblock
 
             let(:cause) { 'ORIGINATOR_CANCEL' }
 
-            it "should cause the actor to be terminated" do
-              translator.should_receive(:handle_pb_event).once
-              subject.handle_es_event es_event
-              sleep 0.25
-              subject.should_not be_alive
-            end
-
             it "de-registers the call from the translator" do
               translator.stub :handle_pb_event
               translator.should_receive(:deregister_call).once.with(id)
@@ -687,7 +680,7 @@ module Punchblock
             let(:command) { Command::Accept.new }
 
             it "should send a respond 180 command and set the command's response" do
-              subject.wrapped_object.should_receive(:application).once.with('respond', '180 Ringing')
+              subject.should_receive(:application).once.with('respond', '180 Ringing')
               subject.execute_command command
               command.response(0.5).should be true
             end
@@ -699,7 +692,7 @@ module Punchblock
             it "should execute the answer application and set the command's response" do
               subject
               Punchblock.should_receive(:new_uuid).once.and_return 'abc123'
-              subject.wrapped_object.should_receive(:application).once.with('answer', "%[punchblock_command_id=abc123]")
+              subject.should_receive(:application).once.with('answer', "%[punchblock_command_id=abc123]")
               subject.should_not be_answered
               subject.execute_command command
               subject.handle_es_event RubyFS::Event.new(nil, :event_name => 'CHANNEL_ANSWER', :scope_variable_punchblock_command_id => 'abc123')
@@ -710,7 +703,7 @@ module Punchblock
             it "should not execute the answer application twice if already answered" do
               subject
               Punchblock.should_receive(:new_uuid).once.and_return 'abc123'
-              subject.wrapped_object.should_receive(:application).once.with('answer', "%[punchblock_command_id=abc123]")
+              subject.should_receive(:application).once.with('answer', "%[punchblock_command_id=abc123]")
               subject.should_not be_answered
               subject.execute_command command
               subject.handle_es_event RubyFS::Event.new(nil, :event_name => 'CHANNEL_ANSWER', :scope_variable_punchblock_command_id => 'abc123')
@@ -723,7 +716,7 @@ module Punchblock
               it "should set the answer command's response correctly" do
                 subject
                 Punchblock.should_receive(:new_uuid).once.and_return 'abc123'
-                subject.wrapped_object.should_receive(:application).once.with('answer', "%[punchblock_command_id=abc123]")
+                subject.should_receive(:application).once.with('answer', "%[punchblock_command_id=abc123]")
                 subject.should_not be_answered
                 subject.execute_command command
                 subject.handle_es_event RubyFS::Event.new(nil, :event_name => 'CHANNEL_ANSWER', :scope_variable_punchblock_command_id => 'abc123', :scope_variable_punchblock_component_id => 'dj182989j')
@@ -734,7 +727,7 @@ module Punchblock
           end
 
           def expect_hangup_with_reason(reason)
-            subject.wrapped_object.should_receive(:sendmsg).once.with(:call_command => 'hangup', :hangup_cause => reason)
+            subject.should_receive(:sendmsg).once.with(:call_command => 'hangup', :hangup_cause => reason)
           end
 
           context 'with a hangup command' do
@@ -777,6 +770,8 @@ module Punchblock
               Punchblock::Component::Output.new renderer: renderer
             end
 
+            before { mock_component }
+
             let(:mock_component) { Translator::Freeswitch::Component::Output.new(command, subject) }
 
             ['freeswitch', 'native', nil].each do |renderer|
@@ -784,7 +779,7 @@ module Punchblock
 
               context "with a renderer of #{renderer}" do
                 it 'should create an Output component and execute it asynchronously' do
-                  Component::Output.should_receive(:new_link).once.with(command, subject).and_return mock_component
+                  Component::Output.should_receive(:new).once.with(command, subject).and_return mock_component
                   mock_component.should_receive(:execute).once
                   subject.execute_command command
                   subject.component_with_id(mock_component.id).should be mock_component
@@ -796,7 +791,7 @@ module Punchblock
               let(:renderer) { :flite }
 
               it 'should create a FliteOutput component and execute it asynchronously using flite and the calls default voice' do
-                Component::FliteOutput.should_receive(:new_link).once.with(command, subject).and_return mock_component
+                Component::FliteOutput.should_receive(:new).once.with(command, subject).and_return mock_component
                 mock_component.should_receive(:execute).once
                 subject.execute_command command
                 subject.component_with_id(mock_component.id).should be mock_component
@@ -807,7 +802,7 @@ module Punchblock
               let(:renderer) { :cepstral }
 
               it 'should create a TTSOutput component and execute it asynchronously using cepstral and the calls default voice' do
-                Component::TTSOutput.should_receive(:new_link).once.with(command, subject).and_return mock_component
+                Component::TTSOutput.should_receive(:new).once.with(command, subject).and_return mock_component
                 mock_component.should_receive(:execute).once
                 subject.execute_command command
                 subject.component_with_id(mock_component.id).should be mock_component
@@ -818,7 +813,7 @@ module Punchblock
               let(:renderer) { :unimrcp }
 
               it 'should create a TTSOutput component and execute it asynchronously using unimrcp and the calls default voice' do
-                Component::TTSOutput.should_receive(:new_link).once.with(command, subject).and_return mock_component
+                Component::TTSOutput.should_receive(:new).once.with(command, subject).and_return mock_component
                 mock_component.should_receive(:execute).once
                 subject.execute_command command
                 subject.component_with_id(mock_component.id).should be mock_component
@@ -831,10 +826,9 @@ module Punchblock
               Punchblock::Component::Input.new
             end
 
-            let(:mock_component) { Translator::Freeswitch::Component::Input.new(command, subject) }
-
             it 'should create an Input component and execute it asynchronously' do
-              Component::Input.should_receive(:new_link).once.with(command, subject).and_return mock_component
+              mock_component = Translator::Freeswitch::Component::Input.new(command, subject)
+              Component::Input.should_receive(:new).once.with(command, subject).and_return mock_component
               mock_component.should_receive(:execute).once
               subject.execute_command command
             end
@@ -845,10 +839,9 @@ module Punchblock
               Punchblock::Component::Record.new
             end
 
-            let(:mock_component) { Translator::Freeswitch::Component::Record.new(command, subject) }
-
             it 'should create a Record component and execute it asynchronously' do
-              Component::Record.should_receive(:new_link).once.with(command, subject).and_return mock_component
+              mock_component = Translator::Freeswitch::Component::Record.new(command, subject)
+              Component::Record.should_receive(:new).once.with(command, subject).and_return mock_component
               mock_component.should_receive(:execute).once
               subject.execute_command command
             end
@@ -942,7 +935,7 @@ module Punchblock
             end
 
             it "executes the proper uuid_bridge command" do
-              subject.wrapped_object.should_receive(:uuid_foo).once.with :bridge, other_call_id
+              subject.should_receive(:uuid_foo).once.with :bridge, other_call_id
               subject.execute_command command
               expect { command.response 1 }.to raise_exception(Timeout::Error)
             end
@@ -974,7 +967,7 @@ module Punchblock
             end
 
             it "executes the unjoin via transfer to park" do
-              subject.wrapped_object.should_receive(:uuid_foo).once.with :transfer, '-both park inline'
+              subject.should_receive(:uuid_foo).once.with :transfer, '-both park inline'
               subject.execute_command command
               expect { command.response 1 }.to raise_exception(Timeout::Error)
             end

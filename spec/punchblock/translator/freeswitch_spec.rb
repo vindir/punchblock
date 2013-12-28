@@ -17,15 +17,6 @@ module Punchblock
       its(:connection)  { should be connection }
       its(:stream)      { should be stream }
 
-      describe '#terminate' do
-        it "terminates all calls" do
-          call = described_class::Call.new 'foo', subject
-          subject.register_call call
-          subject.terminate
-          call.should_not be_alive
-        end
-      end
-
       describe '#execute_command' do
         describe 'with a call command' do
           let(:command) { Command::Answer.new }
@@ -115,7 +106,7 @@ module Punchblock
           end
 
           it 'sends the command to the call for execution' do
-            call.async.should_receive(:execute_command).once.with command
+            call.should_receive(:execute_command).once.with command
             subject.execute_call_command command
           end
         end
@@ -137,7 +128,7 @@ module Punchblock
           it 'sends an error in response to the command' do
             call = subject.call_with_id call_id
 
-            call.wrapped_object.define_singleton_method(:oops) do
+            call.define_singleton_method(:oops) do
               raise 'Woops, I died'
             end
 
@@ -145,7 +136,6 @@ module Punchblock
 
             lambda { call.oops }.should raise_error(/Woops, I died/)
             sleep 0.1
-            call.should_not be_alive
             subject.call_with_id(call_id).should be_nil
 
             command.request!
@@ -169,7 +159,7 @@ module Punchblock
           end
 
           it 'sends an error in response to the command' do
-            call.wrapped_object.define_singleton_method(:oops) do
+            call.define_singleton_method(:oops) do
               raise 'Woops, I died'
             end
 
@@ -177,7 +167,6 @@ module Punchblock
 
             lambda { call.oops }.should raise_error(/Woops, I died/)
             sleep 0.1
-            call.should_not be_alive
             subject.call_with_id(call_id).should be_nil
 
             command.request!
@@ -244,14 +233,14 @@ module Punchblock
             subject.execute_global_command command
             call = subject.call_with_id id
             call.should be_a Freeswitch::Call
-            call.translator.should be subject
+            call.translator.should be subject.wrapped_object
             call.stream.should be stream
           end
 
           it 'should instruct the call to send a dial' do
             mock_call = double('Freeswitch::Call').as_null_object
-            Freeswitch::Call.should_receive(:new_link).once.and_return mock_call
-            mock_call.async.should_receive(:dial).once.with command
+            Freeswitch::Call.should_receive(:new).once.and_return mock_call
+            mock_call.should_receive(:dial).once.with command
             subject.execute_global_command command
           end
         end
@@ -424,7 +413,7 @@ module Punchblock
           subject.handle_es_event es_event
           call = subject.call_with_id unique_id
           call.should be_a Freeswitch::Call
-          call.translator.should be subject
+          call.translator.should be subject.wrapped_object
           call.stream.should be stream
           call.es_env.should be ==  {
             :variable_direction                   => "inbound",
@@ -523,8 +512,7 @@ module Punchblock
           it 'should instruct the call to send an offer' do
             mock_call = double('Freeswitch::Call').as_null_object
             Freeswitch::Call.should_receive(:new).once.and_return mock_call
-            subject.wrapped_object.should_receive(:link)
-            mock_call.async.should_receive(:send_offer).once
+            mock_call.should_receive(:send_offer).once
             subject.handle_es_event es_event
           end
 
@@ -561,12 +549,12 @@ module Punchblock
             end
 
             it "is delivered to the bridging leg" do
-              call_a.async.should_receive(:handle_es_event).once.with es_event
+              call_a.should_receive(:handle_es_event).once.with es_event
               subject.handle_es_event es_event
             end
 
             it "is delivered to the other leg" do
-              call_b.async.should_receive(:handle_es_event).once.with es_event
+              call_b.should_receive(:handle_es_event).once.with es_event
               subject.handle_es_event es_event
             end
           end
@@ -591,12 +579,12 @@ module Punchblock
             end
 
             it "is delivered to the bridging leg" do
-              call_a.async.should_receive(:handle_es_event).once.with es_event
+              call_a.should_receive(:handle_es_event).once.with es_event
               subject.handle_es_event es_event
             end
 
             it "is delivered to the other leg" do
-              call_b.async.should_receive(:handle_es_event).once.with es_event
+              call_b.should_receive(:handle_es_event).once.with es_event
               subject.handle_es_event es_event
             end
           end
@@ -619,8 +607,8 @@ module Punchblock
           end
 
           it "is delivered only to the primary leg" do
-            call_a.async.should_receive(:handle_es_event).once.with es_event
-            call_b.async.should_receive(:handle_es_event).never
+            call_a.should_receive(:handle_es_event).once.with es_event
+            call_b.should_receive(:handle_es_event).never
             subject.handle_es_event es_event
           end
         end
@@ -635,7 +623,7 @@ module Punchblock
           end
 
           it 'sends the ES event to the call' do
-            call.async.should_receive(:handle_es_event).once.with es_event
+            call.should_receive(:handle_es_event).once.with es_event
             subject.handle_es_event es_event
           end
         end

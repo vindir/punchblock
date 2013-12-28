@@ -5,11 +5,7 @@ module Punchblock
     class Freeswitch
       class Call
         include HasGuardedHandlers
-        include Celluloid
         include DeadActorSafety
-
-        extend ActorHasGuardedHandlers
-        execute_guarded_handlers_on_receiver
 
         HANGUP_CAUSE_TO_END_REASON = Hash.new :error
 
@@ -38,8 +34,6 @@ module Punchblock
         REJECT_TO_HANGUP_REASON.merge! :busy => 'USER_BUSY', :decline => 'CALL_REJECTED'
 
         attr_reader :id, :translator, :es_env, :direction, :stream
-
-        trap_exit :actor_died
 
         def initialize(id, translator, es_env = nil, stream = nil)
           @id, @translator, @stream = id, translator, stream
@@ -231,26 +225,15 @@ module Punchblock
           "#{self.class}: #{id}"
         end
 
-        def actor_died(actor, reason)
-          return unless reason
-          pb_logger.error "A linked actor (#{actor.inspect}) died due to #{reason.inspect}"
-          if id = @components.key(actor)
-            @components.delete id
-            complete_event = Punchblock::Event::Complete.new :component_id => id, source_uri: id, :reason => Punchblock::Event::Complete::Error.new
-            send_pb_event complete_event
-          end
-        end
-
         private
 
         def send_end_event(reason)
           send_pb_event Event::End.new(:reason => reason)
           translator.deregister_call id
-          terminate
         end
 
         def execute_component(type, command, *execute_args)
-          type.new_link(command, current_actor).tap do |component|
+          type.new(command, self).tap do |component|
             register_component component
             component.execute(*execute_args)
           end
