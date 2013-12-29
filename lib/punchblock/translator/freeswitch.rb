@@ -84,7 +84,6 @@ module Punchblock
       def handle_es_event(event)
         trigger_handler :es, event
       end
-      exclusive :handle_es_event
 
       def handle_pb_event(event)
         connection.handle_event event
