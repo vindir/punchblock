@@ -7,11 +7,7 @@ module Punchblock
     class Asterisk
       class Call
         include HasGuardedHandlers
-        include Celluloid
         include DeadActorSafety
-
-        extend ActorHasGuardedHandlers
-        execute_guarded_handlers_on_receiver
 
         InvalidCommandError = Class.new Punchblock::Error
 
@@ -28,8 +24,6 @@ module Punchblock
         HANGUP_CAUSE_TO_END_REASON[21] = :reject
         HANGUP_CAUSE_TO_END_REASON[22] = :reject
         HANGUP_CAUSE_TO_END_REASON[102] = :timeout
-
-        trap_exit :actor_died
 
         def initialize(channel, translator, ami_client, connection, agi_env = nil)
           @channel, @translator, @ami_client, @connection = channel, translator, ami_client, connection
@@ -54,10 +48,6 @@ module Punchblock
         def send_offer
           @direction = :inbound
           send_pb_event offer_event
-        end
-
-        def shutdown
-          terminate
         end
 
         def channel_var(variable)
@@ -258,8 +248,6 @@ module Punchblock
           event = condition.wait
           return unless event
           agi.parse_result event
-        rescue ChannelGoneError, RubyAMI::Error => e
-          abort e
         end
 
         def logger_id
@@ -293,15 +281,6 @@ module Punchblock
           send_end_event reason, code
         end
 
-        def actor_died(actor, reason)
-          if id = @components.key(actor)
-            @components.delete id
-            return unless reason
-            complete_event = Punchblock::Event::Complete.new :component_id => id, source_uri: id, :reason => Punchblock::Event::Complete::Error.new
-            send_pb_event complete_event
-          end
-        end
-
         private
 
         def fetch_channel_var(variable)
@@ -320,11 +299,10 @@ module Punchblock
         def send_end_event(reason, code = nil)
           send_pb_event Event::End.new(reason: reason, platform_code: code)
           translator.deregister_call id, channel
-          terminate
         end
 
         def execute_component(type, command, options = {})
-          type.new_link(command, current_actor).tap do |component|
+          type.new(command, self).tap do |component|
             register_component component
             component.async.execute
           end

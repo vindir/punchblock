@@ -41,7 +41,7 @@ module Punchblock
 
           def process_dtmf(digit)
             if @component_node.barge_in && @output_incomplete
-              call.async.redirect_back
+              call.redirect_back
               @barged = true
             end
             super
@@ -65,7 +65,7 @@ module Punchblock
           end
 
           def unregister_dtmf_event_handler
-            call.async.unregister_handler :ami, @dtmf_handler_id if instance_variable_defined?(:@dtmf_handler_id)
+            call.unregister_handler :ami, @dtmf_handler_id if instance_variable_defined?(:@dtmf_handler_id)
           end
         end
       end

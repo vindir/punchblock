@@ -18,21 +18,6 @@ module Punchblock
 
       after { translator.terminate if translator.alive? }
 
-      describe '#shutdown' do
-        it "instructs all calls to shutdown" do
-          call = Asterisk::Call.new 'foo', subject, ami_client, connection
-          call.async.should_receive(:shutdown).once
-          subject.register_call call
-          subject.shutdown
-        end
-
-        it "terminates the actor" do
-          subject.shutdown
-          sleep 0.2
-          subject.should_not be_alive
-        end
-      end
-
       describe '#execute_command' do
         describe 'with a call command' do
           let(:command) { Command::Answer.new }
@@ -136,7 +121,7 @@ module Punchblock
           end
 
           it 'sends the command to the call for execution' do
-            call.async.should_receive(:execute_command).once.with command
+            call.should_receive(:execute_command).once.with command
             subject.execute_call_command command
           end
         end
@@ -158,7 +143,7 @@ module Punchblock
           it 'sends an error in response to the command' do
             call = subject.call_with_id call_id
 
-            call.wrapped_object.define_singleton_method(:oops) do
+            call.define_singleton_method(:oops) do
               raise 'Woops, I died'
             end
 
@@ -166,7 +151,6 @@ module Punchblock
 
             lambda { call.oops }.should raise_error(/Woops, I died/)
             sleep 0.1
-            call.should_not be_alive
             subject.call_with_id(call_id).should be_nil
 
             command.request!
@@ -193,7 +177,7 @@ module Punchblock
           end
 
           it 'sends an error in response to the command' do
-            call.wrapped_object.define_singleton_method(:oops) do
+            call.define_singleton_method(:oops) do
               raise 'Woops, I died'
             end
 
@@ -201,7 +185,6 @@ module Punchblock
 
             lambda { call.oops }.should raise_error(/Woops, I died/)
             sleep 0.1
-            call.should_not be_alive
             subject.call_with_id(call_id).should be_nil
 
             command.request!
@@ -262,14 +245,14 @@ module Punchblock
 
           it 'should be able to look up the call by channel ID' do
             subject.execute_global_command command
-            call_actor = subject.call_for_channel('SIP/1234')
-            call_actor.wrapped_object.should be_a Asterisk::Call
+            call = subject.call_for_channel('SIP/1234')
+            call.should be_a Asterisk::Call
           end
 
           it 'should instruct the call to send a dial' do
             mock_call = double('Asterisk::Call').as_null_object
-            Asterisk::Call.should_receive(:new_link).once.and_return mock_call
-            mock_call.async.should_receive(:dial).once.with command
+            Asterisk::Call.should_receive(:new).once.and_return mock_call
+            mock_call.should_receive(:dial).once.with command
             subject.execute_global_command command
           end
         end
@@ -365,10 +348,10 @@ module Punchblock
 
           it 'should be able to look up the call by channel ID' do
             subject.handle_ami_event ami_event
-            call_actor = subject.call_for_channel('SIP/1234-00000000')
-            call_actor.should be_a Asterisk::Call
-            call_actor.agi_env.should be_a Hash
-            call_actor.agi_env.should be == {
+            call = subject.call_for_channel('SIP/1234-00000000')
+            call.should be_a Asterisk::Call
+            call.agi_env.should be_a Hash
+            call.agi_env.should be == {
               :agi_request      => 'async',
               :agi_channel      => 'SIP/1234-00000000',
               :agi_language     => 'en',
@@ -394,8 +377,8 @@ module Punchblock
 
           it 'should instruct the call to send an offer' do
             mock_call = double('Asterisk::Call').as_null_object
-            Asterisk::Call.should_receive(:new_link).once.and_return mock_call
-            mock_call.async.should_receive(:send_offer).once
+            Asterisk::Call.should_receive(:new).once.and_return mock_call
+            mock_call.should_receive(:send_offer).once
             subject.handle_ami_event ami_event
           end
 
@@ -407,7 +390,7 @@ module Punchblock
             end
 
             it "should not create a new call" do
-              Asterisk::Call.should_receive(:new_link).never
+              Asterisk::Call.should_receive(:new).never
               subject.handle_ami_event ami_event
             end
           end
@@ -523,7 +506,7 @@ module Punchblock
           end
 
           it 'sends the AMI event to the call and to the connection as a PB event' do
-            call.async.should_receive(:process_ami_event).once.with ami_event
+            call.should_receive(:process_ami_event).once.with ami_event
             subject.handle_ami_event ami_event
           end
 
@@ -544,8 +527,8 @@ module Punchblock
               before { subject.register_call call2 }
 
               it 'should send the event to both calls and to the connection once as a PB event' do
-                call.async.should_receive(:process_ami_event).once.with ami_event
-                call2.async.should_receive(:process_ami_event).once.with ami_event
+                call.should_receive(:process_ami_event).once.with ami_event
+                call2.should_receive(:process_ami_event).once.with ami_event
                 subject.handle_ami_event ami_event
               end
             end
@@ -578,12 +561,12 @@ module Punchblock
           end
 
           it 'sends the AMI event to the call and to the connection as a PB event if it is an allowed event' do
-            call.async.should_receive(:process_ami_event).once.with ami_event
+            call.should_receive(:process_ami_event).once.with ami_event
             subject.handle_ami_event ami_event
           end
 
           it 'does not send the AMI event to a bridged channel if it is not allowed' do
-            call.async.should_receive(:process_ami_event).never.with ami_event2
+            call.should_receive(:process_ami_event).never.with ami_event2
             subject.handle_ami_event ami_event2
           end
 

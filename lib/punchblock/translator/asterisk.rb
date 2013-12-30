@@ -59,11 +59,6 @@ module Punchblock
         @components[component_id]
       end
 
-      def shutdown
-        @calls.values.each { |call| call.async.shutdown }
-        terminate
-      end
-
       def handle_ami_event(event)
         return unless event.is_a? RubyAMI::Event
 
@@ -81,7 +76,6 @@ module Punchblock
           handle_pb_event Event::Asterisk::AMI::Event.new(name: event.name, headers: event.headers)
         end
       end
-      exclusive :handle_ami_event
 
       def handle_pb_event(event)
         connection.handle_event event
@@ -104,7 +98,7 @@ module Punchblock
 
       def execute_call_command(command)
         if call = call_with_id(command.target_call_id)
-          call.async.execute_command command
+          call.execute_command command
         else
           command.response = ProtocolError.new.setup :item_not_found, "Could not find a call with ID #{command.target_call_id}", command.target_call_id
         end
@@ -125,9 +119,9 @@ module Punchblock
           register_component component
           component.async.execute
         when Punchblock::Command::Dial
-          call = Call.new_link command.to, current_actor, ami_client, connection
+          call = Call.new command.to, current_actor, ami_client, connection
           register_call call
-          call.async.dial command
+          call.dial command
         else
           command.response = ProtocolError.new.setup 'command-not-acceptable', "Did not understand command"
         end
@@ -182,7 +176,7 @@ module Punchblock
         if !calls_for_event.empty?
           calls_for_event.each_pair do |channel, call|
             next if channel.bridged? && !EVENTS_ALLOWED_BRIDGED.include?(event.name)
-            call.async.process_ami_event event
+            call.process_ami_event event
           end
         elsif event.name == "AsyncAGI" && event['SubEvent'] == "Start"
           handle_async_agi_start_event event
@@ -204,9 +198,9 @@ module Punchblock
 
         return if env[:agi_extension] == 'h' || env[:agi_type] == 'Kill'
 
-        call = Call.new_link event['Channel'], current_actor, ami_client, connection, env
+        call = Call.new event['Channel'], current_actor, ami_client, connection, env
         register_call call
-        call.async.send_offer
+        call.send_offer
       end
     end
   end

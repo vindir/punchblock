@@ -22,7 +22,7 @@ module Punchblock
             call.register_handler :ami, lambda { |e| e['SubEvent'] == 'Start' }, :name => 'AsyncAGI' do |event|
               component_actor.async.send_complete_event complete_reason
             end
-            call.async.redirect_back
+            call.redirect_back
           end
         end
       end

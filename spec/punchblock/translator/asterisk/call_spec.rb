@@ -69,14 +69,6 @@ module Punchblock
 
         before { translator.stub :handle_pb_event }
 
-        describe '#shutdown' do
-          it 'should terminate the actor' do
-            subject.shutdown
-            sleep 0.5
-            subject.should_not be_alive
-          end
-        end
-
         describe '#register_component' do
           it 'should make the component accessible by ID' do
             component_id = 'abc123'
@@ -123,15 +115,15 @@ module Punchblock
         describe '#send_progress' do
           context "with a call that is already answered" do
             it 'should not send the EXEC Progress command' do
-              subject.wrapped_object.should_receive(:'answered?').and_return true
-              subject.wrapped_object.should_receive(:execute_agi_command).with("EXEC Progress").never
+              subject.should_receive(:'answered?').and_return true
+              subject.should_receive(:execute_agi_command).with("EXEC Progress").never
               subject.send_progress
             end
           end
 
           context "with an unanswered call" do
             before do
-              subject.wrapped_object.should_receive(:'answered?').at_least(:once).and_return(false)
+              subject.should_receive(:'answered?').at_least(:once).and_return(false)
             end
 
             context "with a call that is outbound" do
@@ -143,7 +135,7 @@ module Punchblock
               end
 
               it 'should not send the EXEC Progress command' do
-                subject.wrapped_object.should_receive(:execute_agi_command).with("EXEC Progress").never
+                subject.should_receive(:execute_agi_command).with("EXEC Progress").never
                 subject.send_progress
               end
             end
@@ -154,12 +146,12 @@ module Punchblock
               end
 
               it 'should send the EXEC Progress command to a call that is inbound and not answered' do
-                subject.wrapped_object.should_receive(:execute_agi_command).with("EXEC Progress").and_return code: 200, result: 0
+                subject.should_receive(:execute_agi_command).with("EXEC Progress").and_return code: 200, result: 0
                 subject.send_progress
               end
 
               it 'should send the EXEC Progress command only once if called twice' do
-                subject.wrapped_object.should_receive(:execute_agi_command).with("EXEC Progress").once.and_return code: 200, result: 0
+                subject.should_receive(:execute_agi_command).with("EXEC Progress").once.and_return code: 200, result: 0
                 subject.send_progress
                 subject.send_progress
               end
@@ -276,7 +268,7 @@ module Punchblock
             subject.dial dial_command
             accept_command = Command::Accept.new
             accept_command.request!
-            subject.wrapped_object.should_receive(:execute_agi_command).never
+            subject.should_receive(:execute_agi_command).never
             subject.execute_command accept_command
             accept_command.response(0.5).should be true
           end
@@ -296,13 +288,6 @@ module Punchblock
 
             let(:cause)     { '16' }
             let(:cause_txt) { 'Normal Clearing' }
-
-            it "should cause the actor to be terminated" do
-              translator.should_receive(:handle_pb_event).twice
-              subject.process_ami_event ami_event
-              Celluloid::Actor.join(subject, 1)
-              subject.should_not be_alive
-            end
 
             it "de-registers the call from the translator" do
               translator.stub :handle_pb_event
@@ -334,7 +319,7 @@ module Punchblock
               component = subject.execute_command comp_command
               comp_command.response(0.1).should be_a Ref
 
-              subject.async.process_ami_event ami_event
+              subject.process_ami_event ami_event
 
               comp_command = Punchblock::Component::Input.new :grammar => {:value => '<grammar root="foo"><rule id="foo"/></grammar>'}, :mode => :dtmf
               comp_command.request!
@@ -657,7 +642,7 @@ module Punchblock
               before do
                 translator.register_call other_call
                 command.request!
-                subject.wrapped_object.should_receive(:execute_agi_command).and_return code: 200
+                subject.should_receive(:execute_agi_command).and_return code: 200
                 subject.execute_command command
               end
 
@@ -871,7 +856,7 @@ module Punchblock
             let(:command) { Command::Accept.new }
 
             it "should send an EXEC RINGING AGI command and set the command's response" do
-              subject.wrapped_object.should_receive(:execute_agi_command).with('EXEC RINGING').and_return code: 200
+              subject.should_receive(:execute_agi_command).with('EXEC RINGING').and_return code: 200
               subject.execute_command command
               command.response(0.5).should be true
             end
@@ -880,7 +865,7 @@ module Punchblock
               let(:message) { 'Some error' }
               let(:error)   { RubyAMI::Error.new.tap { |e| e.message = message } }
 
-              before { subject.wrapped_object.should_receive(:execute_agi_command).and_raise error }
+              before { subject.should_receive(:execute_agi_command).and_raise error }
 
               it "should return an error with the message" do
                 subject.execute_command command
@@ -903,7 +888,7 @@ module Punchblock
 
             it "with a :busy reason should send an EXEC Busy AGI command and set the command's response" do
               command.reason = :busy
-              subject.wrapped_object.should_receive(:execute_agi_command).with('EXEC Busy').and_return code: 200
+              subject.should_receive(:execute_agi_command).with('EXEC Busy').and_return code: 200
               subject.execute_command command
               command.response(0.5).should be true
             end
@@ -917,7 +902,7 @@ module Punchblock
 
             it "with an :error reason should send an EXEC Congestion AGI command and set the command's response" do
               command.reason = :error
-              subject.wrapped_object.should_receive(:execute_agi_command).with('EXEC Congestion').and_return code: 200
+              subject.should_receive(:execute_agi_command).with('EXEC Congestion').and_return code: 200
               subject.execute_command command
               command.response(0.5).should be true
             end
@@ -926,7 +911,7 @@ module Punchblock
               let(:message) { 'Some error' }
               let(:error)   { RubyAMI::Error.new.tap { |e| e.message = message } }
 
-              before { subject.wrapped_object.should_receive(:execute_agi_command).and_raise error }
+              before { subject.should_receive(:execute_agi_command).and_raise error }
 
               it "should return an error with the message" do
                 subject.execute_command command
@@ -948,13 +933,13 @@ module Punchblock
             let(:command) { Command::Answer.new }
 
             it "should send an ANSWER AGI command and set the command's response" do
-              subject.wrapped_object.should_receive(:execute_agi_command).with('ANSWER').and_return code: 200
+              subject.should_receive(:execute_agi_command).with('ANSWER').and_return code: 200
               subject.execute_command command
               command.response(0.5).should be true
             end
 
             it "should be answered" do
-              subject.wrapped_object.should_receive(:execute_agi_command)
+              subject.should_receive(:execute_agi_command)
               subject.execute_command command
               subject.should be_answered
             end
@@ -963,7 +948,7 @@ module Punchblock
               let(:message) { 'Some error' }
               let(:error)   { RubyAMI::Error.new.tap { |e| e.message = message } }
 
-              before { subject.wrapped_object.should_receive(:execute_agi_command).and_raise error }
+              before { subject.should_receive(:execute_agi_command).and_raise error }
 
               it "should return an error with the message" do
                 subject.execute_command command
@@ -1042,7 +1027,7 @@ module Punchblock
             before { translator.should_receive(:call_with_id).with(other_call_id).and_return(other_call) }
 
             it "executes the proper dialplan Bridge application" do
-              subject.wrapped_object.should_receive(:execute_agi_command).with('EXEC Bridge', "#{other_channel},F(#{REDIRECT_CONTEXT},#{REDIRECT_EXTENSION},#{REDIRECT_PRIORITY})").and_return code: 200
+              subject.should_receive(:execute_agi_command).with('EXEC Bridge', "#{other_channel},F(#{REDIRECT_CONTEXT},#{REDIRECT_EXTENSION},#{REDIRECT_PRIORITY})").and_return code: 200
               subject.execute_command command
             end
 
@@ -1050,7 +1035,7 @@ module Punchblock
               let(:message) { 'Some error' }
               let(:error)   { RubyAMI::Error.new.tap { |e| e.message = message } }
 
-              before { subject.wrapped_object.should_receive(:execute_agi_command).and_raise error }
+              before { subject.should_receive(:execute_agi_command).and_raise error }
 
               it "should return an error with the message" do
                 subject.execute_command command
@@ -1156,10 +1141,9 @@ module Punchblock
               Punchblock::Component::Asterisk::AGI::Command.new :name => 'Answer'
             end
 
-            let(:mock_action) { Translator::Asterisk::Component::Asterisk::AGICommand.new(command, subject) }
-
             it 'should create an AGI command component actor and execute it asynchronously' do
-              Component::Asterisk::AGICommand.should_receive(:new_link).once.with(command, subject).and_return mock_action
+              mock_action = Translator::Asterisk::Component::Asterisk::AGICommand.new(command, subject)
+              Component::Asterisk::AGICommand.should_receive(:new).once.with(command, subject).and_return mock_action
               mock_action.async.should_receive(:execute).once
               subject.execute_command command
             end
@@ -1170,10 +1154,9 @@ module Punchblock
               Punchblock::Component::Output.new
             end
 
-            let(:mock_action) { Translator::Asterisk::Component::Output.new(command, subject) }
-
             it 'should create an Output component and execute it asynchronously' do
-              Component::Output.should_receive(:new_link).once.with(command, subject).and_return mock_action
+              mock_action = Translator::Asterisk::Component::Output.new(command, subject)
+              Component::Output.should_receive(:new).once.with(command, subject).and_return mock_action
               mock_action.async.should_receive(:execute).once
               subject.execute_command command
             end
@@ -1184,10 +1167,9 @@ module Punchblock
               Punchblock::Component::Input.new
             end
 
-            let(:mock_action) { Translator::Asterisk::Component::Input.new(command, subject) }
-
             it 'should create an Input component and execute it asynchronously' do
-              Component::Input.should_receive(:new_link).once.with(command, subject).and_return mock_action
+              mock_action = Translator::Asterisk::Component::Input.new(command, subject)
+              Component::Input.should_receive(:new).once.with(command, subject).and_return mock_action
               mock_action.async.should_receive(:execute).once
               subject.execute_command command
             end
@@ -1224,12 +1206,14 @@ module Punchblock
 
             let(:mock_action) { Translator::Asterisk::Component::MRCPPrompt.new(command, subject) }
 
+            before { mock_action}
+
             context "when the recognizer is unimrcp and the renderer is unimrcp" do
               let(:recognizer)  { :unimrcp }
               let(:renderer)    { :unimrcp }
 
               it 'should create an MRCPPrompt component and execute it asynchronously' do
-                Component::MRCPPrompt.should_receive(:new_link).once.with(command, subject).and_return mock_action
+                Component::MRCPPrompt.should_receive(:new).once.with(command, subject).and_return mock_action
                 mock_action.async.should_receive(:execute).once
                 subject.execute_command command
               end
@@ -1240,7 +1224,7 @@ module Punchblock
               let(:renderer)    { :asterisk }
 
               it 'should create an MRCPPrompt component and execute it asynchronously' do
-                Component::MRCPNativePrompt.should_receive(:new_link).once.with(command, subject).and_return mock_action
+                Component::MRCPNativePrompt.should_receive(:new).once.with(command, subject).and_return mock_action
                 mock_action.async.should_receive(:execute).once
                 subject.execute_command command
               end
@@ -1261,7 +1245,7 @@ module Punchblock
               let(:renderer)    { :unimrcp }
 
               it 'should create a ComposedPrompt component and execute it asynchronously' do
-                Component::ComposedPrompt.should_receive(:new_link).once.with(command, subject).and_return mock_action
+                Component::ComposedPrompt.should_receive(:new).once.with(command, subject).and_return mock_action
                 mock_action.async.should_receive(:execute).once
                 subject.execute_command command
               end
@@ -1273,10 +1257,9 @@ module Punchblock
               Punchblock::Component::Record.new
             end
 
-            let(:mock_action) { Translator::Asterisk::Component::Record.new(command, subject) }
-
             it 'should create a Record component and execute it asynchronously' do
-              Component::Record.should_receive(:new_link).once.with(command, subject).and_return mock_action
+              mock_action = Translator::Asterisk::Component::Record.new(command, subject)
+              Component::Record.should_receive(:new).once.with(command, subject).and_return mock_action
               mock_action.async.should_receive(:execute).once
               subject.execute_command command
             end
@@ -1342,7 +1325,7 @@ module Punchblock
                 it 'sends an error in response to the command' do
                   component = subject.component_with_id comp_id
 
-                  component.wrapped_object.define_singleton_method(:oops) do
+                  component.define_singleton_method(:oops) do
                     raise 'Woops, I died'
                   end
 
@@ -1459,7 +1442,9 @@ module Punchblock
               end
 
               it 'should return the result' do
-                fut = subject.future.execute_agi_command 'EXEC ANSWER'
+                fut = Celluloid::Future.new { subject.execute_agi_command 'EXEC ANSWER' }
+
+                sleep 0.25
 
                 subject.process_ami_event ami_event
 
