@@ -103,7 +103,7 @@ module Punchblock
         end
 
         def process_ami_event(ami_event)
-          send_pb_event Event::Asterisk::AMI::Event.new(name: ami_event.name, headers: ami_event.headers)
+          #send_pb_event Event::Asterisk::AMI::Event.new(name: ami_event.name, headers: ami_event.headers)
 
           case ami_event.name
           when 'Hangup'
