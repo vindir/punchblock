@@ -274,11 +274,13 @@ module Punchblock
           reason = @hangup_cause || HANGUP_CAUSE_TO_END_REASON[code]
           @block_commands = true
           @components.dup.each_pair do |id, component|
-            safe_from_dead_actors do
-              component.call_ended if component.alive?
-            end
+            component.call_ended
           end
           send_end_event reason, code
+        end
+
+        def after(*args, &block)
+          translator.after(*args, &block)
         end
 
         private
@@ -304,7 +306,7 @@ module Punchblock
         def execute_component(type, command, options = {})
           type.new(command, self).tap do |component|
             register_component component
-            component.async.execute
+            component.execute
           end
         end
 

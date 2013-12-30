@@ -1144,7 +1144,7 @@ module Punchblock
             it 'should create an AGI command component actor and execute it asynchronously' do
               mock_action = Translator::Asterisk::Component::Asterisk::AGICommand.new(command, subject)
               Component::Asterisk::AGICommand.should_receive(:new).once.with(command, subject).and_return mock_action
-              mock_action.async.should_receive(:execute).once
+              mock_action.should_receive(:execute).once
               subject.execute_command command
             end
           end
@@ -1157,7 +1157,7 @@ module Punchblock
             it 'should create an Output component and execute it asynchronously' do
               mock_action = Translator::Asterisk::Component::Output.new(command, subject)
               Component::Output.should_receive(:new).once.with(command, subject).and_return mock_action
-              mock_action.async.should_receive(:execute).once
+              mock_action.should_receive(:execute).once
               subject.execute_command command
             end
           end
@@ -1170,7 +1170,7 @@ module Punchblock
             it 'should create an Input component and execute it asynchronously' do
               mock_action = Translator::Asterisk::Component::Input.new(command, subject)
               Component::Input.should_receive(:new).once.with(command, subject).and_return mock_action
-              mock_action.async.should_receive(:execute).once
+              mock_action.should_receive(:execute).once
               subject.execute_command command
             end
           end
@@ -1214,7 +1214,7 @@ module Punchblock
 
               it 'should create an MRCPPrompt component and execute it asynchronously' do
                 Component::MRCPPrompt.should_receive(:new).once.with(command, subject).and_return mock_action
-                mock_action.async.should_receive(:execute).once
+                mock_action.should_receive(:execute).once
                 subject.execute_command command
               end
             end
@@ -1225,7 +1225,7 @@ module Punchblock
 
               it 'should create an MRCPPrompt component and execute it asynchronously' do
                 Component::MRCPNativePrompt.should_receive(:new).once.with(command, subject).and_return mock_action
-                mock_action.async.should_receive(:execute).once
+                mock_action.should_receive(:execute).once
                 subject.execute_command command
               end
             end
@@ -1246,7 +1246,7 @@ module Punchblock
 
               it 'should create a ComposedPrompt component and execute it asynchronously' do
                 Component::ComposedPrompt.should_receive(:new).once.with(command, subject).and_return mock_action
-                mock_action.async.should_receive(:execute).once
+                mock_action.should_receive(:execute).once
                 subject.execute_command command
               end
             end
@@ -1260,7 +1260,7 @@ module Punchblock
             it 'should create a Record component and execute it asynchronously' do
               mock_action = Translator::Asterisk::Component::Record.new(command, subject)
               Component::Record.should_receive(:new).once.with(command, subject).and_return mock_action
-              mock_action.async.should_receive(:execute).once
+              mock_action.should_receive(:execute).once
               subject.execute_command command
             end
           end
@@ -1302,6 +1302,7 @@ module Punchblock
               end
 
               before do
+                pending 'Refactoring single-actor translator for per-call/per-component robustness'
                 component_command.request!
                 subject.execute_command component_command
               end
@@ -1333,7 +1334,6 @@ module Punchblock
 
                   lambda { component.oops }.should raise_error(/Woops, I died/)
                   sleep 0.1
-                  component.should_not be_alive
                   subject.component_with_id(comp_id).should be_nil
 
                   subsequent_command.request!

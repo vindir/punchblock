@@ -121,6 +121,7 @@ module Punchblock
           let(:call_id) { dial_command.response.call_id }
 
           before do
+            pending 'Refactoring single-actor translator for per-call/per-component robustness'
             stream.as_null_object
             subject.execute_command dial_command
           end
@@ -153,6 +154,7 @@ module Punchblock
           let(:call_id) { call.id }
 
           before do
+            pending 'Refactoring single-actor translator for per-call/per-component robustness'
             connection.stub :handle_event
             subject.handle_es_event es_event
             call_id

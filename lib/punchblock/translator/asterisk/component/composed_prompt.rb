@@ -15,9 +15,9 @@ module Punchblock
 
             @output_incomplete = true
 
-            output_component = Output.new_link(output_command, @call)
+            output_component = Output.new(output_command, @call)
             call.register_component output_component
-            fut = output_component.future.execute
+            fut = Thread.new { output_component.execute }
 
             case output_command.response
             when Ref
@@ -58,9 +58,8 @@ module Punchblock
           end
 
           def register_dtmf_event_handler
-            component = current_actor
             @dtmf_handler_id = call.register_handler :ami, :name => 'DTMF', [:[], 'End'] => 'Yes' do |event|
-              component.process_dtmf event['Digit']
+              process_dtmf event['Digit']
             end
           end
 

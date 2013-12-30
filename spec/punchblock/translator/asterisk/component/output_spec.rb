@@ -817,7 +817,7 @@ module Punchblock
                     before do
                       expect_answered
                       mock_call.should_receive(:execute_agi_command).once.with('EXEC Playback', audio_filename)
-                      subject.wrapped_object.should_receive(:send_finish).and_return nil
+                      subject.should_receive(:send_finish).and_return nil
                     end
 
                     context "when a DTMF digit is received" do
@@ -848,7 +848,7 @@ module Punchblock
                     before do
                       expect_answered
                       mock_call.should_receive(:execute_agi_command).once.with('EXEC Playback', audio_filename)
-                      subject.wrapped_object.should_receive(:send_finish).and_return nil
+                      subject.should_receive(:send_finish).and_return nil
                     end
 
                     context "when a DTMF digit is received" do

@@ -106,7 +106,7 @@ module Punchblock
 
       def execute_component_command(command)
         if (component = component_with_id(command.component_id))
-          component.async.execute_command command
+          component.execute_command command
         else
           command.response = ProtocolError.new.setup :item_not_found, "Could not find a component with ID #{command.component_id}", command.target_call_id, command.component_id
         end
@@ -117,7 +117,7 @@ module Punchblock
         when Punchblock::Component::Asterisk::AMI::Action
           component = Component::Asterisk::AMIAction.new command, current_actor, ami_client
           register_component component
-          component.async.execute
+          component.execute
         when Punchblock::Command::Dial
           call = Call.new command.to, current_actor, ami_client, connection
           register_call call
